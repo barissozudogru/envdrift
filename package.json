@@ -1,0 +1,43 @@
+{
+  "name": "@barissozudogru/envdrift",
+  "version": "0.1.0",
+  "description": "Detect environment variable drift across .env files",
+  "bin": {
+    "envdrift": "./dist/cli.js"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/barissozudogru/envdrift.git"
+  },
+  "keywords": [
+    "env",
+    "dotenv",
+    "drift",
+    "validation",
+    "cli"
+  ],
+  "author": "Baris Sozudogru",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "typescript": "^5.9.3"
+  }
+}
