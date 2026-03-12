@@ -6,17 +6,24 @@ export { DriftResult, EnvMap, MissingKey, TypeMismatch, ValueAnomaly, ValueType 
 
 /**
  * Parse a .env file into a key-value map.
- * Handles comments, blank lines, quoted values, and inline comments.
+ * Handles comments, blank lines, quoted values, inline comments,
+ * export prefixes, and multiline double-quoted values.
  */
 export function parseEnvFile(filePath: string): EnvMap {
   const absolutePath = resolve(filePath);
   const content = readFileSync(absolutePath, "utf-8");
   const map: EnvMap = {};
 
-  for (const rawLine of content.split("\n")) {
+  const lines = content.split("\n");
+  let i = 0;
+
+  while (i < lines.length) {
+    const rawLine = lines[i];
+    i++;
+
     const line = rawLine.trim();
 
-    // Skip blank lines and comments
+    // Skip blank lines and full-line comments
     if (!line || line.startsWith("#")) {
       continue;
     }
@@ -26,28 +33,58 @@ export function parseEnvFile(filePath: string): EnvMap {
       continue;
     }
 
-    const key = line.slice(0, eqIndex).trim();
-    let value = line.slice(eqIndex + 1).trim();
+    // Strip optional `export ` prefix from the key segment
+    let keySegment = line.slice(0, eqIndex).trim();
+    if (keySegment.startsWith("export ")) {
+      keySegment = keySegment.slice("export ".length).trim();
+    }
+    const key = keySegment;
+    if (!key) {
+      continue;
+    }
 
-    // Strip inline comments when value is not quoted
-    if (!value.startsWith('"') && !value.startsWith("'")) {
-      const commentIndex = value.indexOf(" #");
-      if (commentIndex !== -1) {
-        value = value.slice(0, commentIndex).trim();
+    const rawValue = line.slice(eqIndex + 1);
+    let value: string;
+
+    if (rawValue.trimStart().startsWith('"')) {
+      // Double-quoted value: supports multiline (embedded \n via actual newlines)
+      const afterOpenQuote = rawValue.trimStart().slice(1);
+      const closingOnSameLine = afterOpenQuote.indexOf('"');
+
+      if (closingOnSameLine !== -1) {
+        // Value opens and closes on the same line
+        value = afterOpenQuote.slice(0, closingOnSameLine);
+      } else {
+        // Multiline: accumulate until the closing double-quote is found
+        let accumulated = afterOpenQuote;
+        while (i < lines.length) {
+          const nextLine = lines[i];
+          i++;
+          const closeIndex = nextLine.indexOf('"');
+          if (closeIndex !== -1) {
+            accumulated += "\n" + nextLine.slice(0, closeIndex);
+            break;
+          }
+          accumulated += "\n" + nextLine;
+        }
+        value = accumulated;
+      }
+    } else if (rawValue.trimStart().startsWith("'")) {
+      // Single-quoted: single-line only (standard .env behaviour)
+      const afterOpenQuote = rawValue.trimStart().slice(1);
+      const closingIndex = afterOpenQuote.indexOf("'");
+      value = closingIndex !== -1 ? afterOpenQuote.slice(0, closingIndex) : afterOpenQuote.trim();
+    } else {
+      // Unquoted value: trim and strip trailing inline comment
+      value = rawValue.trim();
+      // An inline comment is whitespace followed by # (e.g. "value # comment")
+      const commentMatch = value.match(/\s+#.*$/);
+      if (commentMatch !== null && commentMatch.index !== undefined) {
+        value = value.slice(0, commentMatch.index).trim();
       }
     }
 
-    // Strip surrounding quotes
-    if (
-      (value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))
-    ) {
-      value = value.slice(1, -1);
-    }
-
-    if (key) {
-      map[key] = value;
-    }
+    map[key] = value;
   }
 
   return map;
@@ -154,8 +191,11 @@ function detectValueAnomalies(
 
 /**
  * Compare multiple .env files and return a structured drift report.
+ * Keys listed in ignoreKeys are excluded from all checks.
  */
-export function compareEnvFiles(filePaths: string[]): DriftResult {
+export function compareEnvFiles(filePaths: string[], ignoreKeys: string[] = []): DriftResult {
+  const ignoreSet = new Set(ignoreKeys);
+
   if (filePaths.length < 2) {
     return {
       files: filePaths,
@@ -171,11 +211,13 @@ export function compareEnvFiles(filePaths: string[]): DriftResult {
     parsed[filePath] = parseEnvFile(filePath);
   }
 
-  // Collect the union of all keys
+  // Collect the union of all keys, minus ignored ones
   const allKeys = new Set<string>();
   for (const map of Object.values(parsed)) {
     for (const key of Object.keys(map)) {
-      allKeys.add(key);
+      if (!ignoreSet.has(key)) {
+        allKeys.add(key);
+      }
     }
   }
 

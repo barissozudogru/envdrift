@@ -1,39 +1,38 @@
 #!/usr/bin/env node
 import { readdirSync } from "node:fs";
 import { resolve, basename } from "node:path";
+import { createRequire } from "node:module";
 import { compareEnvFiles } from "./index.js";
 import type { DriftResult } from "./types.js";
 
-const RESET = "\x1b[0m";
-const BOLD = "\x1b[1m";
-const RED = "\x1b[31m";
-const YELLOW = "\x1b[33m";
-const GREEN = "\x1b[32m";
-const CYAN = "\x1b[36m";
-const DIM = "\x1b[2m";
+// ---------------------------------------------------------------------------
+// TTY-aware ANSI helpers
+// ---------------------------------------------------------------------------
 
-function bold(s: string): string {
-  return `${BOLD}${s}${RESET}`;
+const USE_COLOR = process.stdout.isTTY === true;
+
+function ansi(code: string, s: string): string {
+  return USE_COLOR ? `${code}${s}\x1b[0m` : s;
 }
-function red(s: string): string {
-  return `${RED}${s}${RESET}`;
-}
-function yellow(s: string): string {
-  return `${YELLOW}${s}${RESET}`;
-}
-function green(s: string): string {
-  return `${GREEN}${s}${RESET}`;
-}
-function cyan(s: string): string {
-  return `${CYAN}${s}${RESET}`;
-}
-function dim(s: string): string {
-  return `${DIM}${s}${RESET}`;
-}
+
+function bold(s: string): string  { return ansi("\x1b[1m", s); }
+function red(s: string): string   { return ansi("\x1b[31m", s); }
+function yellow(s: string): string { return ansi("\x1b[33m", s); }
+function green(s: string): string { return ansi("\x1b[32m", s); }
+function cyan(s: string): string  { return ansi("\x1b[36m", s); }
+function dim(s: string): string   { return ansi("\x1b[2m", s); }
+
+// ---------------------------------------------------------------------------
+// Formatting helpers
+// ---------------------------------------------------------------------------
 
 function shortName(filePath: string): string {
   return basename(filePath);
 }
+
+// ---------------------------------------------------------------------------
+// Human-readable output
+// ---------------------------------------------------------------------------
 
 function printResult(result: DriftResult): void {
   console.log();
@@ -58,7 +57,7 @@ function printResult(result: DriftResult): void {
     console.log(bold(red(`MISSING KEYS  (${result.missingKeys.length})`)));
     console.log(dim("─".repeat(50)));
     for (const item of result.missingKeys) {
-      console.log(`  ${red("✖")} ${bold(item.key)}`);
+      console.log(`  ${red("x")} ${bold(item.key)}`);
       console.log(`    ${dim("present in:")}  ${item.presentIn.map(shortName).join(", ")}`);
       console.log(`    ${dim("missing from:")} ${item.missingFrom.map(shortName).join(", ")}`);
     }
@@ -101,37 +100,102 @@ function printResult(result: DriftResult): void {
   console.log();
 }
 
+// ---------------------------------------------------------------------------
+// JSON output
+// ---------------------------------------------------------------------------
+
+function printJson(result: DriftResult): void {
+  console.log(JSON.stringify(result, null, 2));
+}
+
+// ---------------------------------------------------------------------------
+// Auto-detection
+// ---------------------------------------------------------------------------
+
+// Filenames to exclude from auto-detection (backup/noise files)
+const EXCLUDED_SUFFIXES = [".backup", ".bak"];
+
 function autoDetectEnvFiles(cwd: string): string[] {
   const entries = readdirSync(cwd);
   return entries
-    .filter((f) => /^\.env(\..+)?$/.test(f))
+    .filter((f) => {
+      if (!/^\.env(\..+)?$/.test(f)) return false;
+      for (const suffix of EXCLUDED_SUFFIXES) {
+        if (f.endsWith(suffix)) return false;
+      }
+      return true;
+    })
     .map((f) => resolve(cwd, f))
     .sort();
 }
 
-function parseArgs(argv: string[]): { files: string[]; help: boolean; version: boolean } {
+// ---------------------------------------------------------------------------
+// Argument parsing
+// ---------------------------------------------------------------------------
+
+interface ParsedArgs {
+  files: string[];
+  help: boolean;
+  version: boolean;
+  json: boolean;
+  ignoreKeys: string[];
+}
+
+function parseArgs(argv: string[]): ParsedArgs {
   const args = argv.slice(2);
   const help = args.includes("--help") || args.includes("-h");
   const version = args.includes("--version") || args.includes("-v");
-  const files = args.filter((a) => !a.startsWith("-"));
-  return { files, help, version };
+  const json = args.includes("--json");
+
+  const ignoreKeys: string[] = [];
+  const files: string[] = [];
+
+  let idx = 0;
+  while (idx < args.length) {
+    const arg = args[idx];
+    if (arg === "--ignore" || arg === "-i") {
+      idx++;
+      if (idx < args.length) {
+        // Accept comma-separated or repeated flag: --ignore KEY1,KEY2
+        const raw = args[idx];
+        for (const k of raw.split(",")) {
+          const trimmed = k.trim();
+          if (trimmed) ignoreKeys.push(trimmed);
+        }
+      }
+    } else if (!arg.startsWith("-")) {
+      files.push(arg);
+    }
+    idx++;
+  }
+
+  return { files, help, version, json, ignoreKeys };
 }
+
+// ---------------------------------------------------------------------------
+// Help text
+// ---------------------------------------------------------------------------
 
 function printHelp(): void {
   console.log(`
 ${bold("envdrift")} - detect environment variable drift across .env files
 
 ${bold("USAGE")}
-  envdrift [files...]          Compare specified .env files
-  envdrift                     Auto-detect .env* files in current directory
+  envdrift [files...]               Compare specified .env files
+  envdrift                          Auto-detect .env* files in current directory
 
 ${bold("OPTIONS")}
-  -h, --help                   Show this help message
-  -v, --version                Show version number
+  -h, --help                        Show this help message
+  -v, --version                     Show version number
+  --json                            Output results as JSON (for CI integration)
+  --ignore <keys>                   Comma-separated list of keys to exclude
+                                    (can be repeated: --ignore KEY1 --ignore KEY2)
 
 ${bold("EXAMPLES")}
   envdrift .env .env.staging .env.production
-  envdrift                     (auto-detects .env, .env.local, .env.staging, etc.)
+  envdrift                          (auto-detects .env, .env.local, .env.staging, etc.)
+  envdrift --json .env .env.staging
+  envdrift --ignore SECRET_KEY,INTERNAL_TOKEN .env .env.production
 
 ${bold("EXIT CODES")}
   0  No drift detected
@@ -139,12 +203,16 @@ ${bold("EXIT CODES")}
 
 ${bold("CI EXAMPLE")}
   # In your GitHub Actions workflow:
-  - run: npx @barissozudogru/envdrift .env.example .env.production
+  - run: npx @barissozudogru/envdrift --json .env.example .env.production
 `);
 }
 
+// ---------------------------------------------------------------------------
+// Entry point
+// ---------------------------------------------------------------------------
+
 async function main(): Promise<void> {
-  const { files, help, version } = parseArgs(process.argv);
+  const { files, help, version, json, ignoreKeys } = parseArgs(process.argv);
 
   if (help) {
     printHelp();
@@ -152,8 +220,6 @@ async function main(): Promise<void> {
   }
 
   if (version) {
-    // Read version from package.json at runtime
-    const { createRequire } = await import("node:module");
     const require = createRequire(import.meta.url);
     const pkg = require("../package.json") as { version: string };
     console.log(pkg.version);
@@ -178,14 +244,19 @@ async function main(): Promise<void> {
 
   let result;
   try {
-    result = compareEnvFiles(resolvedFiles);
+    result = compareEnvFiles(resolvedFiles, ignoreKeys);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error(red(`Error reading files: ${message}`));
     process.exit(1);
   }
 
-  printResult(result);
+  if (json) {
+    printJson(result);
+  } else {
+    printResult(result);
+  }
+
   process.exit(result.clean ? 0 : 1);
 }
 
