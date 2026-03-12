@@ -34,8 +34,11 @@ envdrift .env .env.staging .env.production
 ### Options
 
 ```
--h, --help       Show help
--v, --version    Show version
+-h, --help              Show help
+-v, --version           Show version
+    --json              Output results as JSON (useful for CI pipelines)
+-i, --ignore <keys>     Comma-separated list of keys to exclude from comparison
+                        Can be repeated: --ignore KEY1 --ignore KEY2
 ```
 
 ## What it detects
