@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "Detect environment variable drift across .env files",
   "bin": {
-    "envdrift": "./dist/cli.js"
+    "envdrift": "dist/cli.js"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -22,7 +22,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/barissozudogru/envdrift.git"
+    "url": "git+https://github.com/barissozudogru/envdrift.git"
   },
   "keywords": [
     "env",
