@@ -1,17 +1,6 @@
-<h1 align="center">envdrift</h1>
+# envdrift
 
-<p align="center">
-  Detect environment variable drift across your .env files before it causes production bugs.
-</p>
-
-<p align="center">
-  <img src="https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white" alt="TypeScript">
-  <img src="https://img.shields.io/badge/Node.js-%3E%3D18-339933?style=flat&logo=node.js&logoColor=white" alt="Node.js >= 18">
-  <img src="https://img.shields.io/badge/License-MIT-blue?style=flat" alt="MIT License">
-  <img src="https://img.shields.io/badge/Zero_Dependencies-brightgreen?style=flat" alt="Zero Dependencies">
-</p>
-
----
+Detect environment variable drift across your .env files before it causes production bugs.
 
 ## What It Does
 
