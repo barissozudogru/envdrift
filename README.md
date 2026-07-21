@@ -2,13 +2,11 @@
 
 Detect environment variable drift across your .env files before it causes production bugs.
 
-## What It Does
-
 envdrift compares two or more `.env` files and surfaces keys that are missing in some environments, values whose inferred types differ across files, and values that look like placeholders or contain protocol mismatches. It is designed to be used as a local check, a pre-commit hook, or a CI step that fails the build when drift is detected.
 
 ---
 
-## Quick Start
+## Installation
 
 Install globally:
 
