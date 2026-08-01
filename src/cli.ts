@@ -116,16 +116,18 @@ function printJson(result: DriftResult): void {
 const EXCLUDED_SUFFIXES = [".backup", ".bak"];
 
 function autoDetectEnvFiles(cwd: string): string[] {
-  const entries = readdirSync(cwd);
+  const entries = readdirSync(cwd, { withFileTypes: true });
   return entries
-    .filter((f) => {
+    .filter((entry) => {
+      if (!entry.isFile() && !entry.isSymbolicLink()) return false;
+      const f = entry.name;
       if (!/^\.env(\..+)?$/.test(f)) return false;
       for (const suffix of EXCLUDED_SUFFIXES) {
         if (f.endsWith(suffix)) return false;
       }
       return true;
     })
-    .map((f) => resolve(cwd, f))
+    .map((entry) => resolve(cwd, entry.name))
     .sort();
 }
 
