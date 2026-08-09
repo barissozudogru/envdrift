@@ -49,23 +49,33 @@ export function parseEnvFile(filePath: string): EnvMap {
     if (rawValue.trimStart().startsWith('"')) {
       // Double-quoted value: supports multiline (embedded \n via actual newlines)
       const afterOpenQuote = rawValue.trimStart().slice(1);
-      const closingOnSameLine = afterOpenQuote.indexOf('"');
+      
+      const findClosingQuote = (str: string): number => {
+        for (let j = 0; j < str.length; j++) {
+          if (str[j] === '\\') j++;
+          else if (str[j] === '"') return j;
+        }
+        return -1;
+      };
+
+      const closingOnSameLine = findClosingQuote(afterOpenQuote);
 
       if (closingOnSameLine !== -1) {
         // Value opens and closes on the same line
         value = afterOpenQuote.slice(0, closingOnSameLine);
       } else {
         // Multiline: accumulate until the closing double-quote is found
-        let accumulated = afterOpenQuote;
+        let accumulated = afterOpenQuote.endsWith('\r') ? afterOpenQuote.slice(0, -1) : afterOpenQuote;
         while (i < lines.length) {
           const nextLine = lines[i];
           i++;
-          const closeIndex = nextLine.indexOf('"');
+          const cleanNextLine = nextLine.endsWith('\r') ? nextLine.slice(0, -1) : nextLine;
+          const closeIndex = findClosingQuote(cleanNextLine);
           if (closeIndex !== -1) {
-            accumulated += "\n" + nextLine.slice(0, closeIndex);
+            accumulated += "\n" + cleanNextLine.slice(0, closeIndex);
             break;
           }
-          accumulated += "\n" + nextLine;
+          accumulated += "\n" + cleanNextLine;
         }
         value = accumulated;
       }
