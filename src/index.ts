@@ -21,20 +21,20 @@ export function parseEnvFile(filePath: string): EnvMap {
     const rawLine = lines[i];
     i++;
 
-    const line = rawLine.trim();
+    const trimmedLine = rawLine.trim();
 
     // Skip blank lines and full-line comments
-    if (!line || line.startsWith("#")) {
+    if (!trimmedLine || trimmedLine.startsWith("#")) {
       continue;
     }
 
-    const eqIndex = line.indexOf("=");
+    const eqIndex = rawLine.indexOf("=");
     if (eqIndex === -1) {
       continue;
     }
 
     // Strip optional `export ` prefix from the key segment
-    let keySegment = line.slice(0, eqIndex).trim();
+    let keySegment = rawLine.slice(0, eqIndex).trim();
     if (keySegment.startsWith("export ")) {
       keySegment = keySegment.slice("export ".length).trim();
     }
@@ -43,7 +43,7 @@ export function parseEnvFile(filePath: string): EnvMap {
       continue;
     }
 
-    const rawValue = line.slice(eqIndex + 1);
+    const rawValue = rawLine.slice(eqIndex + 1);
     let value: string;
 
     if (rawValue.trimStart().startsWith('"')) {
