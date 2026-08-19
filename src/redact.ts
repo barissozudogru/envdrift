@@ -10,8 +10,8 @@ import type { DriftResult, ValueAnomaly } from "./types.js";
  * are not registered as CI secrets, so no log masking applies to them.
  *
  * Every value is therefore described rather than shown. The description keeps
- * what drift detection actually needs -- length, character class, and a stable
- * fingerprint that answers "is this the same value in both files?" -- without
+ * what drift detection actually needs (length, character class, and a stable
+ * fingerprint answering whether two files hold the same value) without
  * carrying the value itself.
  */
 
