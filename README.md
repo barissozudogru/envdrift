@@ -62,6 +62,7 @@ envdrift --ignore SECRET_KEY --ignore INTERNAL_TOKEN .env .env.production
 | `--version` | `-v` | Show version number |
 | `--json` | | Output results as JSON |
 | `--ignore <keys>` | `-i` | Comma-separated keys to exclude from comparison. Can be repeated. |
+| `--show-values` | | Print raw values instead of their shape. Not for CI, see Value redaction below. |
 
 ---
 
@@ -94,15 +95,37 @@ TYPE MISMATCHES  (1)
 VALUE ANOMALIES  (2)
 ──────────────────────────────────────────────────
   ~ DATABASE_URL  Placeholder value detected in .env.development
-    .env.development: your-database-url-here
-    .env.production: postgres://user:pass@prod-host:5432/mydb
+    .env.development: 22 chars, ascii, #b310
+    .env.production: 44 chars, url, #7c02
 
   ~ API_ENDPOINT  Protocol mismatch across files (http: vs https:)
-    .env.development: http://api.internal.example.com
-    .env.production: https://api.example.com
+    .env.development: 31 chars, url, #4ae1
+    .env.production: 23 chars, url, #90d5
 
 Summary: 2 missing  1 type mismatch  2 anomalies
 ```
+
+---
+
+## Value redaction
+
+envdrift reads `.env` files, which routinely hold live credentials. It never prints a value.
+Each value is described instead: length, character class, and a short stable fingerprint.
+
+```
+API_FOOTBALL_KEY
+  .env: 32 chars, hex, #fa98
+  .env.example: 9 chars, token, #442c
+```
+
+The fingerprint is what keeps the report useful. Identical values fingerprint identically, so
+you can still tell at a glance whether two environments hold the same value, without the value
+appearing anywhere.
+
+This matters most in CI. Values registered as CI secrets are masked in build logs, but values
+read from a file on disk are not, so anything printed lands in the log in cleartext.
+
+`--show-values` prints raw values for local debugging. Do not use it in CI.
 
 ---
 

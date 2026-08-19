@@ -4,6 +4,7 @@ import { resolve, basename } from "node:path";
 import { createRequire } from "node:module";
 import { compareEnvFiles } from "./index.js";
 import type { DriftResult } from "./types.js";
+import { describeValue, redactResult } from "./redact.js";
 
 // ---------------------------------------------------------------------------
 // TTY-aware ANSI helpers
@@ -34,7 +35,7 @@ function shortName(filePath: string): string {
 // Human-readable output
 // ---------------------------------------------------------------------------
 
-function printResult(result: DriftResult): void {
+function printResult(result: DriftResult, showValues: boolean): void {
   console.log();
   console.log(bold("envdrift") + dim(" - environment drift report"));
   console.log(dim("─".repeat(50)));
@@ -84,8 +85,10 @@ function printResult(result: DriftResult): void {
     for (const item of result.valueAnomalies) {
       console.log(`  ${yellow("~")} ${bold(item.key)}  ${dim(item.reason)}`);
       for (const [file, value] of Object.entries(item.values)) {
-        const display = value.length > 60 ? value.slice(0, 57) + "..." : value;
-        console.log(`    ${dim(shortName(file))}: ${display || dim("(empty)")}`);
+        const display = showValues
+          ? value || dim("(empty)")
+          : dim(describeValue(value));
+        console.log(`    ${dim(shortName(file))}: ${display}`);
       }
     }
     console.log();
@@ -104,8 +107,9 @@ function printResult(result: DriftResult): void {
 // JSON output
 // ---------------------------------------------------------------------------
 
-function printJson(result: DriftResult): void {
-  console.log(JSON.stringify(result, null, 2));
+function printJson(result: DriftResult, showValues: boolean): void {
+  const payload = showValues ? result : redactResult(result);
+  console.log(JSON.stringify(payload, null, 2));
 }
 
 // ---------------------------------------------------------------------------
@@ -141,6 +145,7 @@ interface ParsedArgs {
   version: boolean;
   json: boolean;
   ignoreKeys: string[];
+  showValues: boolean;
 }
 
 function parseArgs(argv: string[]): ParsedArgs {
@@ -148,6 +153,7 @@ function parseArgs(argv: string[]): ParsedArgs {
   const help = args.includes("--help") || args.includes("-h");
   const version = args.includes("--version") || args.includes("-v");
   const json = args.includes("--json");
+  const showValues = args.includes("--show-values");
 
   const ignoreKeys: string[] = [];
   const files: string[] = [];
@@ -171,7 +177,7 @@ function parseArgs(argv: string[]): ParsedArgs {
     idx++;
   }
 
-  return { files, help, version, json, ignoreKeys };
+  return { files, help, version, json, ignoreKeys, showValues };
 }
 
 // ---------------------------------------------------------------------------
@@ -192,6 +198,9 @@ ${bold("OPTIONS")}
   --json                            Output results as JSON (for CI integration)
   --ignore <keys>                   Comma-separated list of keys to exclude
                                     (can be repeated: --ignore KEY1 --ignore KEY2)
+  --show-values                     Print raw values instead of their shape.
+                                    Never use this in CI: .env values are not
+                                    masked in build logs.
 
 ${bold("EXAMPLES")}
   envdrift .env .env.staging .env.production
@@ -214,7 +223,7 @@ ${bold("CI EXAMPLE")}
 // ---------------------------------------------------------------------------
 
 async function main(): Promise<void> {
-  const { files, help, version, json, ignoreKeys } = parseArgs(process.argv);
+  const { files, help, version, json, ignoreKeys, showValues } = parseArgs(process.argv);
 
   if (help) {
     printHelp();
@@ -254,9 +263,9 @@ async function main(): Promise<void> {
   }
 
   if (json) {
-    printJson(result);
+    printJson(result, showValues);
   } else {
-    printResult(result);
+    printResult(result, showValues);
   }
 
   process.exit(result.clean ? 0 : 1);
