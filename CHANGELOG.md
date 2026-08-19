@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.4.0] - 2026-08-19
+
+### Changed
+- Values in drift reports are described by length, character class and a stable fingerprint instead of being printed. `--show-values` restores the previous output for local debugging.
+
+### Added
+- Test suite.
+
 ## [0.3.0] - 2026-03-12
 
 ### Changed
