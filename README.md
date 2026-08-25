@@ -1,8 +1,21 @@
+<p align="center">
+  <img src="./assets/social-preview.svg" alt="envdrift" width="900" />
+</p>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/@barissozudogru/envdrift"><img alt="npm version" src="https://img.shields.io/npm/v/@barissozudogru/envdrift?style=flat-square&color=6AB9D5"></a>
+  <a href="https://www.npmjs.com/package/@barissozudogru/envdrift"><img alt="npm downloads" src="https://img.shields.io/npm/dm/@barissozudogru/envdrift?style=flat-square&color=6AB9D5"></a>
+  <a href="https://github.com/barissozudogru/envdrift/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/barissozudogru/envdrift/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="./LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/License-MIT-6AB9D5?style=flat-square"></a>
+</p>
+
 # envdrift
 
 Detect environment variable drift across your .env files before it causes production bugs.
 
 envdrift compares two or more `.env` files and surfaces keys that are missing in some environments, values whose inferred types differ across files, and values that look like placeholders or contain protocol mismatches. It is designed to be used as a local check, a pre-commit hook, or a CI step that fails the build when drift is detected.
+
+[Tool page](https://petri-labs.org/tools/envdrift/) · [npm](https://www.npmjs.com/package/@barissozudogru/envdrift) · [Source](https://github.com/barissozudogru/envdrift)
 
 ---
 
@@ -105,6 +118,8 @@ VALUE ANOMALIES  (2)
 Summary: 2 missing  1 type mismatch  2 anomalies
 ```
 
+If this saves you time, consider [starring the repository](https://github.com/barissozudogru/envdrift). It helps other developers find it.
+
 ---
 
 ## Value redaction
@@ -141,14 +156,16 @@ on: [pull_request]
 jobs:
   env-drift:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: barissozudogru/envdrift@v0.5.0
         with:
-          node-version: '20'
-      - name: Check for environment variable drift
-        run: npx @barissozudogru/envdrift .env.example .env.ci
+          files: .env.example .env.ci
 ```
+
+The action writes the redacted report to the workflow summary and preserves the CLI exit code. It never enables `--show-values`.
 
 ### Pre-commit hook
 
@@ -214,4 +231,4 @@ interface DriftResult {
 
 ## License
 
-MIT - 2026 Baris Sozudogru
+[MIT](./LICENSE)

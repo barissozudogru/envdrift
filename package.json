@@ -1,6 +1,6 @@
 {
   "name": "@barissozudogru/envdrift",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Detect environment variable drift across .env files",
   "bin": {
     "envdrift": "dist/cli.js"
@@ -26,11 +26,18 @@
     "type": "git",
     "url": "git+https://github.com/barissozudogru/envdrift.git"
   },
+  "homepage": "https://petri-labs.org/tools/envdrift/",
+  "bugs": {
+    "url": "https://github.com/barissozudogru/envdrift/issues"
+  },
   "keywords": [
     "env",
     "dotenv",
-    "drift",
+    "environment-variables",
+    "configuration-drift",
+    "secret-redaction",
     "validation",
+    "ci",
     "cli"
   ],
   "author": "Baris Sozudogru",

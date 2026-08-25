@@ -1,0 +1,62 @@
+name: envdrift configuration check
+description: Compare environment files without printing their values.
+author: Petri Labs
+
+branding:
+  icon: eye-off
+  color: blue
+
+inputs:
+  files:
+    description: Space-separated environment file paths to compare.
+    required: true
+  ignore:
+    description: Comma-separated keys to exclude.
+    required: false
+    default: ""
+
+outputs:
+  report:
+    description: The redacted environment drift report.
+    value: ${{ steps.check.outputs.report }}
+
+runs:
+  using: composite
+  steps:
+    - id: check
+      name: Check environment drift
+      shell: bash
+      env:
+        INPUT_FILES: ${{ inputs.files }}
+        INPUT_IGNORE: ${{ inputs.ignore }}
+      run: |
+        read -r -a files <<< "$INPUT_FILES"
+        package_version="$(node -p "require('$GITHUB_ACTION_PATH/package.json').version")"
+        command=(npx --yes "@barissozudogru/envdrift@${package_version}")
+        if [ -n "$INPUT_IGNORE" ]; then
+          command+=(--ignore "$INPUT_IGNORE")
+        fi
+        command+=("${files[@]}")
+
+        set +e
+        report="$("${command[@]}" 2>&1)"
+        status=$?
+        set -e
+
+        delimiter="ENVDRIFT_REPORT_$(date +%s%N)"
+        {
+          echo "report<<${delimiter}"
+          printf '%s\n' "$report"
+          echo "${delimiter}"
+        } >> "$GITHUB_OUTPUT"
+
+        {
+          echo "## envdrift configuration check"
+          echo
+          echo '~~~text'
+          printf '%s\n' "$report"
+          echo '~~~'
+        } >> "$GITHUB_STEP_SUMMARY"
+
+        printf '%s\n' "$report"
+        exit "$status"

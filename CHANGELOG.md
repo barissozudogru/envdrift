@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.5.0] - 2026-08-26
+
+### Added
+
+- Reusable GitHub Action that checks environment files and writes a redacted report to the workflow summary.
+- Continuous integration, Petri Labs discovery metadata, download badges, and a repository social preview.
+
+### Changed
+
+- The package homepage now points to the focused Petri Labs tool page while source and issues remain on GitHub.
+
 ## [0.4.0] - 2026-08-19
 
 ### Changed
@@ -32,7 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `--json` / `--json` flag: outputs the full drift report as structured JSON, suitable for CI pipelines and downstream tooling
+- `--json` flag: outputs the full drift report as structured JSON, suitable for CI pipelines and downstream tooling
 - `--ignore` / `-i` flag: accepts a comma-separated list of keys (repeatable) to exclude from all checks
 - TTY-aware ANSI color output: colors are only applied when stdout is a terminal, so piped output is always clean text
 - Multiline double-quoted value support in the env parser
