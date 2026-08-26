@@ -215,6 +215,9 @@ ${bold("EXIT CODES")}
 ${bold("CI EXAMPLE")}
   # In your GitHub Actions workflow:
   - run: npx @barissozudogru/envdrift --json .env.example .env.production
+
+${bold("SOURCE AND DOCUMENTATION")}
+  https://github.com/barissozudogru/envdrift
 `);
 }
 

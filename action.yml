@@ -32,7 +32,7 @@ runs:
       run: |
         read -r -a files <<< "$INPUT_FILES"
         package_version="$(node -p "require('$GITHUB_ACTION_PATH/package.json').version")"
-        command=(npx --yes "@barissozudogru/envdrift@${package_version}")
+        command=(npm exec --yes --package="@barissozudogru/envdrift@${package_version}" -- envdrift)
         if [ -n "$INPUT_IGNORE" ]; then
           command+=(--ignore "$INPUT_IGNORE")
         fi
