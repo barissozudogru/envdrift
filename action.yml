@@ -31,8 +31,15 @@ runs:
         INPUT_IGNORE: ${{ inputs.ignore }}
       run: |
         read -r -a files <<< "$INPUT_FILES"
-        package_version="$(node -p "require('$GITHUB_ACTION_PATH/package.json').version")"
-        command=(npm exec --yes --package="@barissozudogru/envdrift@${package_version}" -- envdrift)
+        # dist is not committed, so compile the checked out source and run
+        # that. Resolving the package from the registry instead would ignore
+        # the code a branch ref carries and run the last published release.
+        (
+          cd "$GITHUB_ACTION_PATH"
+          npm ci
+          npm run build
+        )
+        command=(node "$GITHUB_ACTION_PATH/dist/cli.js")
         if [ -n "$INPUT_IGNORE" ]; then
           command+=(--ignore "$INPUT_IGNORE")
         fi
