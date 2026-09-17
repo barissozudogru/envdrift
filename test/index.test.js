@@ -80,6 +80,62 @@ test("a value that is only an inline comment parses as empty", () => {
   }
 });
 
+test("a sentence that starts with your is not a placeholder", () => {
+  // The pattern matched the bare word "your" as a prefix, so a welcome
+  // message like "your account is ready" was flagged as a placeholder next
+  // to a real value and failed CI. A placeholder needs the separator form,
+  // as in your-api-key or your_token.
+  const { files, cleanup } = writeEnvPair({
+    "a.env": "WELCOME=your account is ready\n",
+    "b.env": "WELCOME=account ready\n",
+  });
+  try {
+    const result = compareEnvFiles(files);
+    assert.deepEqual(result.valueAnomalies, []);
+    assert.equal(result.clean, true);
+  } finally {
+    cleanup();
+  }
+});
+
+test("example.com is a working origin, not a placeholder marker", () => {
+  // "example" also matched as a bare prefix, which swallowed the reserved
+  // but fully functional domain. Only a standalone "example", or one
+  // followed by something other than a domain character, reads as a
+  // placeholder.
+  const { files, cleanup } = writeEnvPair({
+    "a.env": "CORS_ORIGIN=example.com\n",
+    "b.env": "CORS_ORIGIN=api.mycorp.dev\n",
+  });
+  try {
+    const result = compareEnvFiles(files);
+    assert.deepEqual(result.valueAnomalies, []);
+    assert.equal(result.clean, true);
+  } finally {
+    cleanup();
+  }
+});
+
+test("separator-form placeholders next to real values are still flagged", () => {
+  // Tightening the prefixes must not stop real placeholders from being
+  // reported: your-api-key-here, a standalone example, and <replace-me>
+  // all stay placeholder tokens.
+  const { files, cleanup } = writeEnvPair({
+    "a.env": "API_KEY=your-api-key-here\nDB_NAME=example\nHOOK_URL=<replace-me>\n",
+    "b.env": "API_KEY=sk-live-3f9c2a\nDB_NAME=orders_prod\nHOOK_URL=https://hooks.internal/\n",
+  });
+  try {
+    const result = compareEnvFiles(files);
+    assert.deepEqual(
+      result.valueAnomalies.map((a) => a.key).sort(),
+      ["API_KEY", "DB_NAME", "HOOK_URL"]
+    );
+    assert.match(result.valueAnomalies[0].reason, /Placeholder value detected/);
+  } finally {
+    cleanup();
+  }
+});
+
 test("a hash inside an unquoted value survives comment stripping", () => {
   // A comment starts at whitespace before the #, so a value that begins with
   // or contains # without preceding whitespace keeps it, as in bash.

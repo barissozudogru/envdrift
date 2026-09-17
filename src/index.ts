@@ -157,7 +157,14 @@ function detectValueAnomalies(
   const entries = Object.entries(valuesByFile);
   if (entries.length < 2) return null;
 
-  const placeholderPattern = /^(your[-_]?|change[-_]?me|todo|placeholder|example|<.*>|\*\*\*|xxx)/i;
+  // A placeholder has to look like a placeholder token, not merely start
+  // with a word: the bare prefixes "your" and "example" also match ordinary
+  // values such as "your account is ready" and the working origin
+  // example.com. So "your" needs a separator plus a suffix (your-api-key),
+  // and "example" must stand alone or be followed by something other than a
+  // domain character.
+  const placeholderPattern =
+    /^(your[-_].+|change[-_]?me|todo|placeholder|example(?![a-z0-9.])|<.*>|\*\*\*|xxx)/i;
   const placeholders = entries.filter(([, v]) => placeholderPattern.test(v));
   const nonPlaceholders = entries.filter(([, v]) => !placeholderPattern.test(v));
 
