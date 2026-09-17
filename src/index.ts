@@ -79,6 +79,12 @@ export function parseEnvFile(filePath: string): EnvMap {
         }
         value = accumulated;
       }
+
+      // dotenv expands \n inside double quotes into a real newline, so a file
+      // writing the two characters backslash and n and a file writing a
+      // physical line break must parse to the same value instead of
+      // fingerprinting as drift.
+      value = value.replace(/\\n/g, "\n");
     } else if (rawValue.trimStart().startsWith("'")) {
       // Single-quoted: single-line only (standard .env behaviour)
       const afterOpenQuote = rawValue.trimStart().slice(1);

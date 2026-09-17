@@ -136,6 +136,24 @@ test("separator-form placeholders next to real values are still flagged", () => 
   }
 });
 
+test("backslash n inside double quotes expands to a real newline", () => {
+  // dotenv expands \n in double-quoted values, so one file writing the two
+  // characters backslash and n and another writing a physical line break hold
+  // the same value. Keeping the literal backslash made the pair fingerprint
+  // differently and read as drift in the redacted report.
+  const { files, cleanup } = writeEnvPair({
+    "a.env": 'CERT="-----BEGIN-----\\nKEY\\n-----END-----"\n',
+    "b.env": 'CERT="-----BEGIN-----\nKEY\n-----END-----"\n',
+  });
+  try {
+    const escaped = parseEnvFile(files[0]).CERT;
+    assert.equal(escaped, "-----BEGIN-----\nKEY\n-----END-----");
+    assert.equal(parseEnvFile(files[1]).CERT, escaped);
+  } finally {
+    cleanup();
+  }
+});
+
 test("a hash inside an unquoted value survives comment stripping", () => {
   // A comment starts at whitespace before the #, so a value that begins with
   // or contains # without preceding whitespace keeps it, as in bash.
