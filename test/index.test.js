@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { compareEnvFiles } from "../dist/index.js";
+import { compareEnvFiles, parseEnvFile } from "../dist/index.js";
 
 function writeEnvPair(pairs) {
   const dir = mkdtempSync(join(tmpdir(), "envdrift-"));
@@ -56,6 +56,41 @@ test("http and https URLs across files are still a protocol mismatch", () => {
     const result = compareEnvFiles(files);
     assert.equal(result.valueAnomalies.length, 1);
     assert.match(result.valueAnomalies[0].reason, /Protocol mismatch across files \(http: vs https:\)/);
+  } finally {
+    cleanup();
+  }
+});
+
+test("a value that is only an inline comment parses as empty", () => {
+  // bash and dotenv give KEY an empty value when everything after = is a
+  // comment. The strip ran on the trimmed value, where no whitespace was left
+  // in front of the #, so the comment text survived as the value and read as
+  // drift against a file with a genuinely empty KEY.
+  const { files, cleanup } = writeEnvPair({
+    "a.env": "FEATURE_FLAG= # TODO enable in prod\n",
+    "b.env": "FEATURE_FLAG=\n",
+  });
+  try {
+    assert.equal(parseEnvFile(files[0]).FEATURE_FLAG, "");
+    const result = compareEnvFiles(files);
+    assert.deepEqual(result.valueAnomalies, []);
+    assert.equal(result.clean, true);
+  } finally {
+    cleanup();
+  }
+});
+
+test("a hash inside an unquoted value survives comment stripping", () => {
+  // A comment starts at whitespace before the #, so a value that begins with
+  // or contains # without preceding whitespace keeps it, as in bash.
+  const { files, cleanup } = writeEnvPair({
+    "a.env": "COLOR=#fff\nTOKEN=a#b\nLOG_LEVEL=debug # verbose staging builds\n",
+  });
+  try {
+    const parsed = parseEnvFile(files[0]);
+    assert.equal(parsed.COLOR, "#fff");
+    assert.equal(parsed.TOKEN, "a#b");
+    assert.equal(parsed.LOG_LEVEL, "debug");
   } finally {
     cleanup();
   }

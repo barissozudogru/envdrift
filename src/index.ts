@@ -85,13 +85,17 @@ export function parseEnvFile(filePath: string): EnvMap {
       const closingIndex = afterOpenQuote.indexOf("'");
       value = closingIndex !== -1 ? afterOpenQuote.slice(0, closingIndex) : afterOpenQuote.trim();
     } else {
-      // Unquoted value: trim and strip trailing inline comment
-      value = rawValue.trim();
-      // An inline comment is whitespace followed by # (e.g. "value # comment")
-      const commentMatch = value.match(/\s+#.*$/);
-      if (commentMatch !== null && commentMatch.index !== undefined) {
-        value = value.slice(0, commentMatch.index).trim();
-      }
+      // Unquoted value: strip a trailing inline comment, then trim. An inline
+      // comment is whitespace followed by # (e.g. "value # comment"). The
+      // strip must run on the raw remainder: trimming first would eat the
+      // whitespace in front of the #, so "KEY= # TODO" would keep the whole
+      // comment as its value instead of an empty one.
+      const commentMatch = rawValue.match(/\s+#.*$/);
+      const withoutComment =
+        commentMatch !== null && commentMatch.index !== undefined
+          ? rawValue.slice(0, commentMatch.index)
+          : rawValue;
+      value = withoutComment.trim();
     }
 
     map[key] = value;
