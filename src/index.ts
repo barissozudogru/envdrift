@@ -165,17 +165,14 @@ function detectValueAnomalies(
     };
   }
 
-  // Protocol mismatch (http vs https)
+  // Protocol mismatch (http vs https). Only real URLs carry a protocol:
+  // WHATWG URL also accepts host:port values like localhost:5432 and
+  // invents a scheme from the hostname, so two plain hosts must not
+  // take part in the comparison.
   const protocols = new Set(
     entries
-      .map(([, v]) => {
-        try {
-          return new URL(v).protocol;
-        } catch {
-          return null;
-        }
-      })
-      .filter(Boolean)
+      .filter(([, v]) => inferType(v) === "url")
+      .map(([, v]) => new URL(v).protocol)
   );
   if (protocols.size > 1) {
     return {
