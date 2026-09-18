@@ -13,10 +13,10 @@ test("describeValue never echoes any part of the value", () => {
 });
 
 test("describeValue reports length and character class", () => {
-  assert.match(describeValue("3908889a422df2b376bdb2b7a72a1514"), /^32 chars, hex, #[0-9a-f]{4}$/);
-  assert.match(describeValue("8080"), /^4 chars, digits, #[0-9a-f]{4}$/);
-  assert.match(describeValue("true"), /^4 chars, boolean, #[0-9a-f]{4}$/);
-  assert.match(describeValue("https://example.com/x"), /^21 chars, url, #[0-9a-f]{4}$/);
+  assert.match(describeValue("3908889a422df2b376bdb2b7a72a1514"), /^32 chars, hex, #[0-9a-f]{8}$/);
+  assert.match(describeValue("8080"), /^4 chars, digits, #[0-9a-f]{8}$/);
+  assert.match(describeValue("true"), /^4 chars, boolean, #[0-9a-f]{8}$/);
+  assert.match(describeValue("https://example.com/x"), /^21 chars, url, #[0-9a-f]{8}$/);
   assert.equal(describeValue(""), "(empty)");
 });
 
@@ -29,7 +29,16 @@ test("a short value is not padded out to look longer", () => {
 test("fingerprint is stable and distinguishes values", () => {
   assert.equal(fingerprint("same"), fingerprint("same"));
   assert.notEqual(fingerprint("a"), fingerprint("b"));
-  assert.match(fingerprint("anything"), /^[0-9a-f]{4}$/);
+  assert.match(fingerprint("anything"), /^[0-9a-f]{8}$/);
+});
+
+test("values that collided at four hex characters no longer do", () => {
+  // sk_live_0080 and sk_live_0154 both hashed to 6bcd when the fingerprint
+  // kept four hex characters, so the report described two different values
+  // as identical. This pair is the shortest collision found by enumerating
+  // sk_live_0000 upward.
+  assert.notEqual(fingerprint("sk_live_0080"), fingerprint("sk_live_0154"));
+  assert.notEqual(describeValue("sk_live_0080"), describeValue("sk_live_0154"));
 });
 
 test("equal values across files share a fingerprint so drift stays readable", () => {

@@ -30,14 +30,17 @@ function classify(value: string): string {
 
 /**
  * Short, stable fingerprint. Equal values fingerprint equally across files,
- * which is what makes a redacted drift report still readable.
+ * which is what makes a redacted drift report still readable. Eight hex
+ * characters is 32 bits of sha256: four characters collided often enough
+ * (about one compared pair in 65536) for the report to describe two
+ * different values as identical.
  */
 export function fingerprint(value: string): string {
-  return createHash("sha256").update(value, "utf8").digest("hex").slice(0, 4);
+  return createHash("sha256").update(value, "utf8").digest("hex").slice(0, 8);
 }
 
 /**
- * Human-readable shape of a value, e.g. "32 chars, hex, #a41f".
+ * Human-readable shape of a value, e.g. "32 chars, hex, #fa9818d2".
  * Never includes any part of the value itself.
  */
 export function describeValue(value: string): string {

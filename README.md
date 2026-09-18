@@ -108,12 +108,12 @@ TYPE MISMATCHES  (1)
 VALUE ANOMALIES  (2)
 ──────────────────────────────────────────────────
   ~ DATABASE_URL  Placeholder value detected in .env.development
-    .env.development: 22 chars, ascii, #b310
-    .env.production: 44 chars, url, #7c02
+    .env.development: 22 chars, ascii, #bdd78292
+    .env.production: 44 chars, url, #a5cf0924
 
   ~ API_ENDPOINT  Protocol mismatch across files (http: vs https:)
-    .env.development: 31 chars, url, #4ae1
-    .env.production: 23 chars, url, #90d5
+    .env.development: 31 chars, url, #61bc4742
+    .env.production: 23 chars, url, #137b9e5e
 
 Summary: 2 missing  1 type mismatch  2 anomalies
 ```
@@ -129,8 +129,8 @@ Each value is described instead: length, character class, and a short stable fin
 
 ```
 API_FOOTBALL_KEY
-  .env: 32 chars, hex, #fa98
-  .env.example: 9 chars, token, #442c
+  .env: 32 chars, hex, #fa9818d2
+  .env.example: 9 chars, token, #442cbf3f
 ```
 
 The fingerprint is what keeps the report useful. Identical values fingerprint identically, so
