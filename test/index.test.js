@@ -169,3 +169,96 @@ test("a hash inside an unquoted value survives comment stripping", () => {
     cleanup();
   }
 });
+
+test("missing keys across files are identified with present and missing locations", () => {
+  // Drift detection requires knowing which files define a key and which
+  // files omit it, so differences between deployment targets can be resolved.
+  const { files, cleanup } = writeEnvPair({
+    "a.env": "PORT=3000\nSHARED_KEY=secret\n",
+    "b.env": "DATABASE_URL=postgres://localhost:5432/db\nSHARED_KEY=secret\n",
+  });
+  try {
+    const result = compareEnvFiles(files);
+    assert.equal(result.clean, false);
+    assert.deepEqual(result.missingKeys, [
+      {
+        key: "PORT",
+        presentIn: [files[0]],
+        missingFrom: [files[1]],
+      },
+      {
+        key: "DATABASE_URL",
+        presentIn: [files[1]],
+        missingFrom: [files[0]],
+      },
+    ]);
+  } finally {
+    cleanup();
+  }
+});
+
+test("type mismatches across boolean, number, string, path, and url are detected", () => {
+  // Inconsistent value shapes across environments indicate configuration drift
+  // that can cause runtime type errors after deployment.
+  const { files, cleanup } = writeEnvPair({
+    "a.env": [
+      "IS_ENABLED=true",
+      "PORT=8080",
+      "RETRY_COUNT=5",
+      "CONFIG_FILE=/etc/app/config.json",
+      "WEBHOOK_URL=https://hooks.example.com",
+      "LOG_DIR=./logs",
+    ].join("\n") + "\n",
+    "b.env": [
+      "IS_ENABLED=yes",
+      "PORT=production",
+      "RETRY_COUNT=false",
+      "CONFIG_FILE=https://example.com/config.json",
+      "WEBHOOK_URL=disabled",
+      "LOG_DIR=console",
+    ].join("\n") + "\n",
+  });
+  try {
+    const result = compareEnvFiles(files);
+    assert.equal(result.clean, false);
+    const mismatches = Object.fromEntries(
+      result.typeMismatches.map((m) => [m.key, m.types])
+    );
+    assert.deepEqual(mismatches, {
+      IS_ENABLED: { [files[0]]: "boolean", [files[1]]: "string" },
+      PORT: { [files[0]]: "number", [files[1]]: "string" },
+      RETRY_COUNT: { [files[0]]: "number", [files[1]]: "boolean" },
+      CONFIG_FILE: { [files[0]]: "path", [files[1]]: "url" },
+      WEBHOOK_URL: { [files[0]]: "url", [files[1]]: "string" },
+      LOG_DIR: { [files[0]]: "path", [files[1]]: "string" },
+    });
+  } finally {
+    cleanup();
+  }
+});
+
+test("ignoreKeys excludes specified keys from drift detection", () => {
+  // Shared files often have intentionally unaligned keys such as local ports
+  // or machine specific paths that callers exclude from CI validation.
+  const { files, cleanup } = writeEnvPair({
+    "a.env": "LOCAL_PORT=3000\nSHARED=production\nUNSHARED_KEY=secret\n",
+    "b.env": "LOCAL_PORT=production\nSHARED=production\n",
+  });
+  try {
+    const unignored = compareEnvFiles(files);
+    assert.equal(unignored.clean, false);
+    assert.equal(unignored.missingKeys.length, 1);
+    assert.equal(unignored.missingKeys[0].key, "UNSHARED_KEY");
+    assert.equal(unignored.typeMismatches.length, 1);
+    assert.equal(unignored.typeMismatches[0].key, "LOCAL_PORT");
+
+    const ignored = compareEnvFiles(files, ["LOCAL_PORT", "UNSHARED_KEY"]);
+    assert.deepEqual(ignored.missingKeys, []);
+    assert.deepEqual(ignored.typeMismatches, []);
+    assert.deepEqual(ignored.valueAnomalies, []);
+    assert.equal(ignored.clean, true);
+  } finally {
+    cleanup();
+  }
+});
+
