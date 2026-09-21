@@ -12,7 +12,7 @@ export { DriftResult, EnvMap, MissingKey, TypeMismatch, ValueAnomaly, ValueType 
 export function parseEnvFile(filePath: string): EnvMap {
   const absolutePath = resolve(filePath);
   const content = readFileSync(absolutePath, "utf-8");
-  const map: EnvMap = {};
+  const map: EnvMap = Object.create(null);
 
   const lines = content.split("\n");
   let i = 0;
@@ -256,7 +256,7 @@ export function compareEnvFiles(filePaths: string[], ignoreKeys: string[] = []):
     const values: Record<string, string> = {};
 
     for (const filePath of filePaths) {
-      if (key in parsed[filePath]) {
+      if (Object.hasOwn(parsed[filePath], key)) {
         presentIn.push(filePath);
         const value = parsed[filePath][key];
         types[filePath] = inferType(value);

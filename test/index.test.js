@@ -262,3 +262,66 @@ test("ignoreKeys excludes specified keys from drift detection", () => {
   }
 });
 
+test("keys named after Object prototype properties do not crash or report false presence", () => {
+  // Using the in operator checked the prototype chain of the parsed object,
+  // so keys such as constructor, toString, or valueOf looked present in files
+  // that omitted them. The native prototype function was then passed to
+  // inferType, which threw a TypeError when calling value.toLowerCase.
+  const { files, cleanup } = writeEnvPair({
+    "a.env": "constructor=service\ntoString=custom\n",
+    "b.env": "PORT=3000\n",
+  });
+  try {
+    const result = compareEnvFiles(files);
+    assert.equal(result.clean, false);
+    const missingKeysByName = Object.fromEntries(
+      result.missingKeys.map((m) => [m.key, m])
+    );
+    assert.deepEqual(missingKeysByName.constructor, {
+      key: "constructor",
+      presentIn: [files[0]],
+      missingFrom: [files[1]],
+    });
+    assert.deepEqual(missingKeysByName.toString, {
+      key: "toString",
+      presentIn: [files[0]],
+      missingFrom: [files[1]],
+    });
+    assert.deepEqual(missingKeysByName.PORT, {
+      key: "PORT",
+      presentIn: [files[1]],
+      missingFrom: [files[0]],
+    });
+  } finally {
+    cleanup();
+  }
+});
+
+test("a key named __proto__ is preserved as an own property and tracked for drift", () => {
+  // Initializing the parsed map as a plain object invoked Object.prototype.__proto__
+  // setter instead of defining an own property, silently dropping the key from
+  // Object.keys and comparison.
+  const { files, cleanup } = writeEnvPair({
+    "a.env": "__proto__=polluted\n",
+    "b.env": "PORT=3000\n",
+  });
+  try {
+    const parsedA = parseEnvFile(files[0]);
+    assert.equal(Object.hasOwn(parsedA, "__proto__"), true);
+    assert.equal(parsedA["__proto__"], "polluted");
+
+    const result = compareEnvFiles(files);
+    assert.equal(result.clean, false);
+    const missingKeysByName = Object.fromEntries(
+      result.missingKeys.map((m) => [m.key, m])
+    );
+    assert.deepEqual(missingKeysByName.__proto__, {
+      key: "__proto__",
+      presentIn: [files[0]],
+      missingFrom: [files[1]],
+    });
+  } finally {
+    cleanup();
+  }
+});
+
