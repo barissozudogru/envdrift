@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { readdirSync } from "node:fs";
-import { resolve, basename } from "node:path";
+import { resolve, relative, isAbsolute } from "node:path";
 import { createRequire } from "node:module";
 import { compareEnvFiles } from "./index.js";
 import type { DriftResult } from "./types.js";
@@ -28,7 +28,11 @@ function dim(s: string): string   { return ansi("\x1b[2m", s); }
 // ---------------------------------------------------------------------------
 
 function shortName(filePath: string): string {
-  return basename(filePath);
+  const rel = relative(process.cwd(), filePath);
+  if (rel && !rel.startsWith("..") && !isAbsolute(rel)) {
+    return rel;
+  }
+  return filePath;
 }
 
 // ---------------------------------------------------------------------------
