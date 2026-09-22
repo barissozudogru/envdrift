@@ -1,6 +1,6 @@
 {
   "name": "@barissozudogru/envdrift",
-  "version": "0.5.5",
+  "version": "0.5.6",
   "description": "Detect environment variable drift across .env files",
   "bin": {
     "envdrift": "dist/cli.js"
