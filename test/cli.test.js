@@ -99,3 +99,38 @@ test("files in the current directory format as plain filenames without directory
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("CLI excludes keys passed with --ignore=KEY syntax", () => {
+  // Arguments using the --ignore=KEY syntax were previously skipped
+  // by the option parser, causing ignored keys to be reported as drift.
+  const dir = mkdtempSync(join(tmpdir(), "envdrift-cli-"));
+  writeFileSync(join(dir, ".env"), "KEY1=val1\nKEY2=val2\nKEY3=val3\n");
+  writeFileSync(join(dir, ".env.staging"), "KEY3=val3\n");
+
+  try {
+    const singleFlagResult = spawnSync(
+      process.execPath,
+      [join(process.cwd(), "dist/cli.js"), "--ignore=KEY1", "--ignore=KEY2", ".env", ".env.staging"],
+      {
+        cwd: dir,
+        encoding: "utf8",
+      }
+    );
+    assert.equal(singleFlagResult.status, 0, singleFlagResult.stderr);
+    assert.match(singleFlagResult.stdout, /No drift detected/);
+
+    const commaFlagResult = spawnSync(
+      process.execPath,
+      [join(process.cwd(), "dist/cli.js"), "--ignore=KEY1,KEY2", ".env", ".env.staging"],
+      {
+        cwd: dir,
+        encoding: "utf8",
+      }
+    );
+    assert.equal(commaFlagResult.status, 0, commaFlagResult.stderr);
+    assert.match(commaFlagResult.stdout, /No drift detected/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+

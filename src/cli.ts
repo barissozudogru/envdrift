@@ -162,6 +162,13 @@ function parseArgs(argv: string[]): ParsedArgs {
   const ignoreKeys: string[] = [];
   const files: string[] = [];
 
+  function addIgnoreKeys(raw: string): void {
+    for (const k of raw.split(",")) {
+      const trimmed = k.trim();
+      if (trimmed) ignoreKeys.push(trimmed);
+    }
+  }
+
   let idx = 0;
   while (idx < args.length) {
     const arg = args[idx];
@@ -169,12 +176,10 @@ function parseArgs(argv: string[]): ParsedArgs {
       idx++;
       if (idx < args.length) {
         // Accept comma-separated or repeated flag: --ignore KEY1,KEY2
-        const raw = args[idx];
-        for (const k of raw.split(",")) {
-          const trimmed = k.trim();
-          if (trimmed) ignoreKeys.push(trimmed);
-        }
+        addIgnoreKeys(args[idx]);
       }
+    } else if (arg.startsWith("--ignore=") || arg.startsWith("-i=")) {
+      addIgnoreKeys(arg.slice(arg.indexOf("=") + 1));
     } else if (!arg.startsWith("-")) {
       files.push(arg);
     }
