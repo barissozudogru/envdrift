@@ -170,6 +170,17 @@ test("a hash inside an unquoted value survives comment stripping", () => {
   }
 });
 
+test("classic Mac line endings separate environment entries", () => {
+  const { files, cleanup } = writeEnvPair({
+    "a.env": "FIRST=one\rSECOND=two\r",
+  });
+  try {
+    assert.deepEqual({ ...parseEnvFile(files[0]) }, { FIRST: "one", SECOND: "two" });
+  } finally {
+    cleanup();
+  }
+});
+
 test("missing keys across files are identified with present and missing locations", () => {
   // Drift detection requires knowing which files define a key and which
   // files omit it, so differences between deployment targets can be resolved.
@@ -324,4 +335,3 @@ test("a key named __proto__ is preserved as an own property and tracked for drif
     cleanup();
   }
 });
-
