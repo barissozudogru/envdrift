@@ -14,7 +14,7 @@ export function parseEnvFile(filePath: string): EnvMap {
   const content = readFileSync(absolutePath, "utf-8");
   const map: EnvMap = Object.create(null);
 
-  const lines = content.split("\n");
+  const lines = content.split(/\r\n|\n|\r/);
   let i = 0;
 
   while (i < lines.length) {
