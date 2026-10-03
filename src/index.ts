@@ -4,6 +4,24 @@ import type { DriftResult, EnvMap, MissingKey, TypeMismatch, ValueAnomaly, Value
 
 export { DriftResult, EnvMap, MissingKey, TypeMismatch, ValueAnomaly, ValueType } from "./types.js";
 
+function decodeDoubleQuotedValue(value: string): string {
+  let decoded = "";
+  for (let i = 0; i < value.length; i++) {
+    if (value[i] !== "\\" || i + 1 >= value.length) {
+      decoded += value[i];
+      continue;
+    }
+
+    const next = value[i + 1];
+    if (next === "n") decoded += "\n";
+    else if (next === '"') decoded += '"';
+    else if (next === "\\") decoded += "\\";
+    else decoded += "\\" + next;
+    i++;
+  }
+  return decoded;
+}
+
 /**
  * Parse a .env file into a key-value map.
  * Handles comments, blank lines, quoted values, inline comments,
@@ -84,7 +102,7 @@ export function parseEnvFile(filePath: string): EnvMap {
       // writing the two characters backslash and n and a file writing a
       // physical line break must parse to the same value instead of
       // fingerprinting as drift.
-      value = value.replace(/\\n/g, "\n");
+      value = decodeDoubleQuotedValue(value);
     } else if (rawValue.trimStart().startsWith("'")) {
       // Single-quoted: single-line only (standard .env behaviour)
       const afterOpenQuote = rawValue.trimStart().slice(1);

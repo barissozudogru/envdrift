@@ -154,6 +154,17 @@ test("backslash n inside double quotes expands to a real newline", () => {
   }
 });
 
+test("escaped quotes inside double-quoted values are decoded", () => {
+  const { files, cleanup } = writeEnvPair({
+    "a.env": 'MESSAGE="say \\"hello\\""\n',
+  });
+  try {
+    assert.equal(parseEnvFile(files[0]).MESSAGE, 'say "hello"');
+  } finally {
+    cleanup();
+  }
+});
+
 test("a hash inside an unquoted value survives comment stripping", () => {
   // A comment starts at whitespace before the #, so a value that begins with
   // or contains # without preceding whitespace keeps it, as in bash.
