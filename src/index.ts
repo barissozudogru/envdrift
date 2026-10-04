@@ -161,6 +161,7 @@ export function inferType(value: string): ValueType {
     value.startsWith("/") ||
     value.startsWith("./") ||
     value.startsWith("../") ||
+    value.startsWith("\\\\") ||
     /^[A-Za-z]:\\/.test(value) ||
     /^[A-Za-z]:\//.test(value)
   ) {
