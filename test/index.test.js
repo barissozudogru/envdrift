@@ -116,6 +116,43 @@ test("example.com is a working origin, not a placeholder marker", () => {
   }
 });
 
+test("a real token that starts with xxx is not a placeholder", () => {
+  const { files, cleanup } = writeEnvPair({
+    "a.env": "IMAGE_DENSITY=xxxhdpi\n",
+    "b.env": "IMAGE_DENSITY=xhdpi\n",
+  });
+  try {
+    const result = compareEnvFiles(files);
+    assert.deepEqual(result.valueAnomalies, []);
+    assert.equal(result.clean, true);
+  } finally {
+    cleanup();
+  }
+});
+
+test("todo and placeholder prefixes remain placeholder markers", () => {
+  const { files, cleanup } = writeEnvPair({
+    "a.env": [
+      "TASK=todoist",
+      "DOMAIN=todo.foo",
+      "IDENTIFIER=placeholder123",
+    ].join("\n") + "\n",
+    "b.env": [
+      "TASK=completed",
+      "DOMAIN=api.internal",
+      "IDENTIFIER=generated-value",
+    ].join("\n") + "\n",
+  });
+  try {
+    assert.deepEqual(
+      compareEnvFiles(files).valueAnomalies.map((a) => a.key).sort(),
+      ["DOMAIN", "IDENTIFIER", "TASK"]
+    );
+  } finally {
+    cleanup();
+  }
+});
+
 test("separator-form placeholders next to real values are still flagged", () => {
   // Tightening the prefixes must not stop real placeholders from being
   // reported: your-api-key-here, a standalone example, and <replace-me>
