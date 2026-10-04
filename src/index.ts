@@ -190,7 +190,7 @@ function detectValueAnomalies(
   // and "example" must stand alone or be followed by something other than a
   // domain character.
   const placeholderPattern =
-    /^(your[-_].+|change[-_]?me|todo|placeholder|example(?![a-z0-9.])|<.*>|\*\*\*|xxx)/i;
+    /^(your[-_].+|change[-_]?me|todo|placeholder|example(?![a-z0-9.])|<.*>|\*\*\*|xxx(?![a-z0-9.]))/i;
   const placeholders = entries.filter(([, v]) => placeholderPattern.test(v));
   const nonPlaceholders = entries.filter(([, v]) => !placeholderPattern.test(v));
 
