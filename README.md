@@ -79,59 +79,18 @@ envdrift --ignore SECRET_KEY --ignore INTERNAL_TOKEN .env .env.production
 
 ---
 
-## Example Output
+## Reading the report
 
-```
-envdrift - environment drift report
-──────────────────────────────────────────────────
-
-Comparing files:
-  • .env.development
-  • .env.production
-
-MISSING KEYS  (2)
-──────────────────────────────────────────────────
-  x STRIPE_WEBHOOK_SECRET
-    present in:   .env.production
-    missing from: .env.development
-
-  x REDIS_URL
-    present in:   .env.development, .env.production
-    missing from: .env.staging
-
-TYPE MISMATCHES  (1)
-──────────────────────────────────────────────────
-  ! MAX_CONNECTIONS
-    .env.development: number
-    .env.production: string
-
-VALUE ANOMALIES  (2)
-──────────────────────────────────────────────────
-  ~ DATABASE_URL  Placeholder value detected in .env.development
-    .env.development: 22 chars, ascii, #bdd78292
-    .env.production: 44 chars, url, #a5cf0924
-
-  ~ API_ENDPOINT  Protocol mismatch across files (http: vs https:)
-    .env.development: 31 chars, url, #61bc4742
-    .env.production: 23 chars, url, #137b9e5e
-
-Summary: 2 missing  1 type mismatch  2 anomalies
-```
-
-If this saves you time, consider [starring the repository](https://github.com/barissozudogru/envdrift). It helps other developers find it.
-
----
+The report lists the files compared, missing keys, inferred type mismatches, and
+value anomalies. JSON output contains the same findings for CI integrations.
+Use `--ignore` for intentional differences between environments.
 
 ## Value redaction
 
-envdrift reads `.env` files, which routinely hold live credentials. It never prints a value.
+envdrift reads `.env` files, which routinely hold live credentials. By default, it prints value descriptions instead of raw values.
 Each value is described instead: length, character class, and a short stable fingerprint.
 
-```
-API_FOOTBALL_KEY
-  .env: 32 chars, hex, #fa9818d2
-  .env.example: 9 chars, token, #442cbf3f
-```
+
 
 The fingerprint is what keeps the report useful. Identical values fingerprint identically, so
 you can still tell at a glance whether two environments hold the same value, without the value
@@ -228,6 +187,20 @@ interface DriftResult {
 ```
 
 ---
+
+## Development and support
+
+Report problems through [GitHub issues](https://github.com/barissozudogru/envdrift/issues). See [CONTRIBUTING.md](./CONTRIBUTING.md) for the contribution workflow. For vulnerabilities, follow [SECURITY.md](./SECURITY.md).
+
+To build and test a source checkout with Node.js 22:
+
+```bash
+npm ci
+npm test
+npm run build
+```
+
+The default branch can contain changes that have not yet been published to npm.
 
 ## License
 
