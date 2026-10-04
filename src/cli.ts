@@ -163,9 +163,16 @@ function parseArgs(argv: string[]): ParsedArgs {
   const files: string[] = [];
 
   function addIgnoreKeys(raw: string): void {
+    let added = false;
     for (const k of raw.split(",")) {
       const trimmed = k.trim();
-      if (trimmed) ignoreKeys.push(trimmed);
+      if (trimmed) {
+        ignoreKeys.push(trimmed);
+        added = true;
+      }
+    }
+    if (!added) {
+      throw new Error("--ignore requires a key");
     }
   }
 
@@ -174,10 +181,11 @@ function parseArgs(argv: string[]): ParsedArgs {
     const arg = args[idx];
     if (arg === "--ignore" || arg === "-i") {
       idx++;
-      if (idx < args.length) {
-        // Accept comma-separated or repeated flag: --ignore KEY1,KEY2
-        addIgnoreKeys(args[idx]);
+      if (idx >= args.length || args[idx].startsWith("-")) {
+        throw new Error("--ignore requires a key");
       }
+      // Accept comma-separated or repeated flag: --ignore KEY1,KEY2
+      addIgnoreKeys(args[idx]);
     } else if (arg.startsWith("--ignore=") || arg.startsWith("-i=")) {
       addIgnoreKeys(arg.slice(arg.indexOf("=") + 1));
     } else if (!arg.startsWith("-")) {

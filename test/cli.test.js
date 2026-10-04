@@ -134,3 +134,22 @@ test("CLI excludes keys passed with --ignore=KEY syntax", () => {
   }
 });
 
+test("CLI rejects an --ignore flag without a key", () => {
+  const dir = mkdtempSync(join(tmpdir(), "envdrift-cli-"));
+  writeFileSync(join(dir, ".env"), "KEY=one\n");
+  writeFileSync(join(dir, ".env.staging"), "KEY=two\n");
+
+  try {
+    const result = spawnSync(
+      process.execPath,
+      [join(process.cwd(), "dist/cli.js"), "--ignore", "--json", ".env", ".env.staging"],
+      { cwd: dir, encoding: "utf8" }
+    );
+
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /--ignore requires a key/);
+    assert.doesNotMatch(result.stderr, /Error reading files/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
