@@ -14,6 +14,7 @@ function decodeDoubleQuotedValue(value: string): string {
 
     const next = value[i + 1];
     if (next === "n") decoded += "\n";
+    else if (next === "r") decoded += "\r";
     else if (next === '"') decoded += '"';
     else if (next === "\\") decoded += "\\";
     else decoded += "\\" + next;
