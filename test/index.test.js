@@ -154,6 +154,17 @@ test("backslash n inside double quotes expands to a real newline", () => {
   }
 });
 
+test("backslash r inside double quotes expands to a carriage return", () => {
+  const { files, cleanup } = writeEnvPair({
+    "a.env": 'VALUE="line1\\rline2"\n',
+  });
+  try {
+    assert.equal(parseEnvFile(files[0]).VALUE, "line1\rline2");
+  } finally {
+    cleanup();
+  }
+});
+
 test("escaped quotes inside double-quoted values are decoded", () => {
   const { files, cleanup } = writeEnvPair({
     "a.env": 'MESSAGE="say \\"hello\\""\n',
