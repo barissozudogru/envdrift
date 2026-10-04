@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { compareEnvFiles, parseEnvFile } from "../dist/index.js";
+import { compareEnvFiles, inferType, parseEnvFile } from "../dist/index.js";
 
 function writeEnvPair(pairs) {
   const dir = mkdtempSync(join(tmpdir(), "envdrift-"));
@@ -278,6 +278,25 @@ test("type mismatches across boolean, number, string, path, and url are detected
       WEBHOOK_URL: { [files[0]]: "url", [files[1]]: "string" },
       LOG_DIR: { [files[0]]: "path", [files[1]]: "string" },
     });
+  } finally {
+    cleanup();
+  }
+});
+
+test("UNC paths are classified as paths", () => {
+  const uncPath = "\\\\server\\share\\config.json";
+  const { files, cleanup } = writeEnvPair({
+    "a.env": `CONFIG_PATH=${uncPath}\n`,
+    "b.env": "CONFIG_PATH=console\n",
+  });
+  try {
+    assert.equal(inferType(uncPath), "path");
+    assert.deepEqual(compareEnvFiles(files).typeMismatches, [
+      {
+        key: "CONFIG_PATH",
+        types: { [files[0]]: "path", [files[1]]: "string" },
+      },
+    ]);
   } finally {
     cleanup();
   }
