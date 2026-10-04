@@ -203,6 +203,19 @@ test("classic Mac line endings separate environment entries", () => {
   }
 });
 
+test("export prefixes may use tab whitespace", () => {
+  const { files, cleanup } = writeEnvPair({
+    "a.env": "export\tPORT=3000\n",
+    "b.env": "PORT=3000\n",
+  });
+  try {
+    assert.deepEqual({ ...parseEnvFile(files[0]) }, { PORT: "3000" });
+    assert.equal(compareEnvFiles(files).clean, true);
+  } finally {
+    cleanup();
+  }
+});
+
 test("missing keys across files are identified with present and missing locations", () => {
   // Drift detection requires knowing which files define a key and which
   // files omit it, so differences between deployment targets can be resolved.

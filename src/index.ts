@@ -54,8 +54,8 @@ export function parseEnvFile(filePath: string): EnvMap {
 
     // Strip optional `export ` prefix from the key segment
     let keySegment = rawLine.slice(0, eqIndex).trim();
-    if (keySegment.startsWith("export ")) {
-      keySegment = keySegment.slice("export ".length).trim();
+    if (keySegment.startsWith("export") && /^export\s+/.test(keySegment)) {
+      keySegment = keySegment.replace(/^export\s+/, "").trim();
     }
     const key = keySegment;
     if (!key) {
